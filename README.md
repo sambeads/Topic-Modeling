@@ -1,13 +1,12 @@
-# Topic-Modeling
+# Topic-Modeling Project:
 Using topic modeling on the Valley of the Shadow data
 
-# Information
+# Information:
 Author: Sam Beadles
 Email:  Beadlessamuel@gmail.com
 
-# Introduction
+# Introduction:
 The purpose of this code is to explain my method in scraping and modeling text from the Valley of the Shadow
-
 
 
 # file manifest:
