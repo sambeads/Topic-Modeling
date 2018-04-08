@@ -9,7 +9,7 @@ Email:  Beadlessamuel@gmail.com
 The purpose of this code is to explain my method in scraping and modeling text from the Valley of the Shadow
 
 
-# file manifest:
+# File manifest:
 
 Data file 1: valley_df_clean.csv
   Excel
