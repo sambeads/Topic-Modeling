@@ -1,14 +1,16 @@
 # Topic-Modeling
 Using topic modeling on the Valley of the Shadow data
 
+# Information
 Author: Sam Beadles
 Email:  Beadlessamuel@gmail.com
 
-the purpose of this code is to explain my method in scraping and modeling text from the Valley of the Shadow
+# Introduction
+The purpose of this code is to explain my method in scraping and modeling text from the Valley of the Shadow
 
 
 
-file manifest:
+# file manifest:
 
 Data file 1: valley_df_clean.csv
   Excel
@@ -20,4 +22,4 @@ Data file 2:  IMP4500_valley_df_clean.csv
   nrow: 2102
   Still has gaps
   
-# 
+
