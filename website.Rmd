@@ -1,0 +1,27 @@
+---
+title: "Topic-Modeling"
+author: "Sam Beadles"
+date: "4/10/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+### Introduction
+
+I designed this project—part code, part analysis, part history—to understand how statistical approaches to text can supplement and guide historical research. Along the way, I’ll discuss my research method, show how choices in the collection and processing of data inform my results, and suggest areas for future research in the digital humanities...
+
+## section:
+
+The first section is one on scraping.
+
+## Importing libraries
+
+```{r pressure, echo=TRUE,message=FALSE,warning=FALSE}
+library(rvest)
+library(dplyr)
+library(readr)
+```
+
