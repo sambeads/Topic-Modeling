@@ -1,29 +1,38 @@
 ---
-title: "Topic-Modeling"
+title: "Topic Modeling the Valley's Civil War Newspapers: A Data Analysis Methodology"
 author: "Sam Beadles"
-date: "4/10/2018"
-output: html_document
+date: "4/13/2018"
+output: 
+  html_document:
+    toc: TRUE
+    toc_depth: 3
+    toc_float: TRUE
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 ```
+# Section 1: Introduction
 
-### Introduction
+## Introduction
 
   I designed this project—part code, part analysis, part history—to understand how statistical approaches to text can supplement and guide historical research. Along the way, I’ll discuss my research method, show how choices in the collection and processing of data inform my results, and suggest areas for future research in the digital humanities.
-  In the following posts, I use topic modeling—a probabilistic modeling technique—to 
-parse free text. I’ve posted all of my relevant R code and interim datasets to a Github repository. I’ll include snippets of codes in my walkthrough. The codebase along with comments should be read-able on its own. I encourage the reader to use whichever set of resources—be it code or historical sources—best helps them comprehend and build on my research. 
-  Each part of my work will appeal to different people. My goal is to create a living document that attracts conversation and criticism from many disciplines. In this sense, my thesis isn’t done: it’s still waiting for a contribution from my readers.
 
-# 1: Source of the data
+In the following posts, I use topic modeling—a probabilistic modeling technique—to parse free text. I’ve posted all of my relevant R code and interim datasets to a Github repository. I’ll include snippets of codes in my walkthrough. The codebase along with comments should be read-able on its own. I encourage the reader to use whichever set of resources—be it code or historical sources—best helps them comprehend and build on my research. 
+
+Each part of my work will appeal to different people. My goal is to create a living document that attracts conversation and criticism from many disciplines. In this sense, my thesis isn’t done: it’s still waiting for a contribution from my readers.
+
+### Source of the data
 
   I conceived of my project from Edward Ayer’s Valley of the Shadow online repository. This archive, an early 1990’s foray into what would become the discipline of the Digital Humanities, contains an array of digitized source materials. Ayers incorporates sources from maps and GIS data to letters and newspapers. The archive focuses on the ante-and-post bellum periods in two towns in the Shenandoah Valley: Franklin County, PA and Augusta County, VA.
-	In particular, I’ve chosen to work with the archives of seven Civil War newspapers. These newspapers run from various intervals from to 1857-1870. Four are based in Franklin, PA, three in Augusta, VA. They represent a variety of political positions from Republican to Democratic.
-  These newspapers have several benefits that led me to use them specifically. The papers are relatively consistently published (usually weekly), have clearer politics ties, and are more easily accessible in tabulated form. However, their form also has drawbacks. Most importantly, the newspapers have already been curated. Only certain ‘important’ passages have been transcribed by the historians working on Ayers’ project. Most of the main text entries in the original newspapers—such as weddings and obituaries—have been omitted or summarized.
 
+In particular, I’ve chosen to work with the archives of seven Civil War newspapers. These newspapers run from various intervals from to 1857-1870. Four are based in Franklin, PA, three in Augusta, VA. They represent a variety of political positions from Republican to Democratic.
 
-# 2: Scraping the data
+These newspapers have several benefits that led me to use them specifically. The papers are relatively consistently published (usually weekly), have clearer politics ties, and are more easily accessible in tabulated form. However, their form also has drawbacks. Most importantly, the newspapers have already been curated. Only certain ‘important’ passages have been transcribed by the historians working on Ayers’ project. Most of the main text entries in the original newspapers—such as weddings and obituaries—have been omitted or summarized.
+
+# Section 2: Scraping
+
+## Scraping the data
 
 In order to do any analysis, I had to collect the data. I used a technique called web-scraping to access and store each week’s worth of newspaper text. In this post, I’ll outline the specific coding practices I used. At the end of the post, I’ll discuss the importance of some of my decisions and their relation to the rest of my work.
 
@@ -31,7 +40,7 @@ Throughout, I use the Rvest library to access and parse HTML. The basic process 
 
 For a more technical description of the web-scraping loops, please see the code repository.
 
-# Importing libraries
+### Importing libraries
 
 ```{r libraries, echo=TRUE,message=FALSE,warning=FALSE}
 library(rvest)
@@ -40,16 +49,9 @@ library(readr)
 library(stringr)
 ```
 
-I began by creating a function that takes URLs as an input and returns the list of HREFs on that URL. This function will help me crawl the 'tree' structure of one page with many hyperlinks.
+### Creating variables
 
-```{r HREFs, echo=TRUE,message=FALSE,warning=FALSE}
-hrefs <- function(url){
-  ht <- read_html(url)
-  hrefs <- ht %>% html_nodes("center center a") %>% html_attr('href')
-  return(hrefs)
-}
-```
-The second step is to assign variables that contain the paper-specific URL. Luckily, the URL varies in a predictable way: the base URL plus the paper designation—usually a very accessible shortening of the name, e.g. VV for Valley Virginian—brings the web-scraping application to the right spot. 
+The first step is to assign variables that contain the paper-specific URL. Luckily, the URL varies in a predictable way: the base URL plus the paper designation—usually a very accessible shortening of the name, e.g. VV for Valley Virginian—brings the web-scraping application to the right spot. 
 
 ```{r assign, echo=TRUE,message=FALSE,warning=FALSE}
 papers_chr <- c('vv','rv','ss','fr','sd','vr','vs')
@@ -74,6 +76,8 @@ papers <- c(vv,rv,ss,fr,sd,vr,vs)
 
 Notice that creating functions-- instead of copy-and-pasting, or even vectorizing the action-- creates clean, reproducible, and flexible code.
 
+### Initializing dataframes:
+
 I will initialize the dataframe that will hold the data from each scraping iteration. Note that a loop was necessary because the string "sd" brought up issues-- base R wanted to recognize it as the standard deviation function and failed to assign it a value.
 
 ```{r dataframermaker, echo=TRUE,message=FALSE,warning=FALSE}
@@ -93,6 +97,19 @@ for (i in papers_chr){
 
 ```
 
+### Creating function to scrape HREFS
+I began by creating a function that takes URLs as an input and returns the list of HREFs on that URL. This function will help me crawl the 'tree' structure of one page with many hyperlinks.
+
+```{r HREFs, echo=TRUE,message=FALSE,warning=FALSE}
+hrefs <- function(url){
+  ht <- read_html(url)
+  hrefs <- ht %>% html_nodes("center center a") %>% html_attr('href')
+  return(hrefs)
+}
+```
+
+### Accessing HREFS
+
 Lastly, I will run my original 'HREFs' scraping function on each of the URLs to create vectors-- all of different lengths-- that contain the HREFs for each newspaper page.
 
 ```{r HREFs_action, echo=TRUE,message=FALSE,warning=FALSE}
@@ -105,6 +122,8 @@ hrefsvr <- hrefs(vr)
 hrefsvs <- hrefs(vs)
 
 ```
+
+### Using loops
 
 The final step is to implement loops over each newspaper. I will only give an example of one loop along with an explanation: I had to copy the same loop several times and change the parameters for each loop. In order to run this code, see the code repository.
 
@@ -133,7 +152,7 @@ for (i in 1:length(hrefsvv)){
   
  To finish out my scraping, I did some idiosyncratic cleaning. The HTML text that I scraped had filler text of the following form: “backslash    “ with varying numbers of trailing spaces. I used regex to find and replace all “backslash” characters followed by trailing spaces with an empty string, “”. I also added their ‘side’ to the dataframe: CF for Southern papers and UN for Northern papers. 
  
-```{r cleaning, echo=TRUE,message=FALSE, eval=FALSE}
+```{r cleaning2, echo=TRUE,message=FALSE, eval=FALSE}
 confederates <- rbind(newdfvv,newdfrv,newdfss)
 confederates$side <- 'CF'
 
@@ -147,13 +166,296 @@ valley_df$text <- trimws(valley_df$text)              # trim whitespace
 valley_df$text <- gsub("\\\"",'',valley_df$text)      # replace \" with ''
 ```
 
-## Discussion
+### Discussion
 
   Choices in this data collection stage have long term impact on the eventual analysis. Specifically, the format of the website limits the granularity of my scraping. The structure of the website prevents me from distinguishing between different entries. With the human eye, the distrinction is obvious: the header “Full Text” heads each transcribed portion. However, the Rvest can only distinguish between paragraphs: we can have either many paragraph-sized entries, or an aggregation of the entire week.
  
   At the end of this script, I wrote out my data into an Excel sheet. This ‘data storage’ approach has two benefits. First, as I described, it saves time by not requiring me to run the script every time I want to work. Second, it allows me to see the data in a format that sometimes—as in my case—leads me to understand some issues.
 
   Notice that my choices—or my lack of choices—at this point will drive later analysis. Most importantly, my scraping machine forces me to aggregate all entries in a single week and treat them as one document. Second, the curated nature of the documents means that I can use topic modeling not to infer about what 19th century newspapers wrote generally, but only to infer through the lens of what 21st century historians deemed important enough to transcribe. 
+
+# Section 3: Processing
+
+## Processing the Valley Data
+
+This post will describe the data processing of the Valley transcriptions. Data processing (or cleansing) is, in a sense, a ‘technical’ necessity. It deals with the nitty-gritty of file encoding, regular expressions, and text cleaning. However, data processing is an essential part of any data science research project. 
+
+### Necessity of processing
+
+Data scientists spend a significant amount of time cleaning their data. According to a recent Forbes article (1), data scientists use up to 60% of their time processing data before any analysis. It’s an important step and worth deep research: this Science Direct article (2) lists data cleaning second on its analysis of challenges to Big Data. As you will see, the quality of the processing directly relates to our ability to make inferences from the data. 
+
+### Importing libraries
+
+Libraries such as stringr provide wonderful suites of tools for text processing. I imported the following libraries:
+
+```{r librariesx, echo=TRUE,message=FALSE,warning=FALSE}
+library(stringr)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(lubridate)
+options(stringsAsFactors = FALSE)
+```
+
+### Extracting features
+
+I began by removing the index that the CSV automatically applies to the dataframe, and by removing any rows that have NA values. I then transform the date column to a more recognizable format, and extract the year from each date. 
+```{r cleaning, echo=TRUE,warning=FALSE,message=FALSE}
+valley_df_clean <- read.csv('valley_df_clean.csv',encoding = "UTF-8")
+
+valley_df_clean <- valley_df_clean %>% subset(select = c('X','date','paper','text','url','side')) %>% 
+  filter(!is.na(valley_df_clean$text))
+
+valley_df_clean$date <- as.Date(str_sub(valley_df_clean$date,start=1,end=-2),format = "%Y.%m.%d")
+
+valley_df_clean$year <- year(valley_df_clean$date)
+```
+
+### Creating and visualizing word counts
+
+I decided, in order to understand the overall data, to compress each text entry to a more manageable statistic: the number of words in that entry. This statistic allows us to graph the word count of each entry in a histogram. It will also give us some insight into what entries create trouble in reading and writing the .csv.
+
+```{r words, echo=TRUE}
+word_count <- sapply(valley_df_clean$text, function(x) str_count(x))
+w <- unname(word_count)
+valley_df_clean$words <- w
+```
+
+```{r wordcount 1, echo=FALSE,fig=TRUE}
+ggplot()+aes(word_count)+geom_histogram()+
+  ggtitle('Graph of number of words shows most shorter than 4000 words')+
+  theme_minimal()
+```
+
+### Cleaning and compressing data
+
+I also chose to eliminate the non ASCII characters from my dataframe. This choice affected only 6 entries out of the total dataframe. I did so because I wasn’t able to read in the data with these characters later on in the process. The (3) source gives the source code for this idea.
+
+I chose to take only entries with more than 100 words. Previous research (4) points out that LDA, as it is predicated on repeated words in a single document, does not perform well on short text. Lastly, I made a choice to eliminate the entries that a ‘side’ that was neither UN nor CF. I chose to do so because the length of the entries was preventing Excel from taking the proper format. These long entries prevented each document from taking one row.
+
+```{r ASCII, echo=TRUE}
+valley_df_clean<- valley_df_clean[-grep("NOT_ASCII", iconv(valley_df_clean$text, "latin1", "ASCII", sub="NOT_ASCII")),]
+
+# filter all entries that do not have the assigned side
+valley_df_clean <- valley_df_clean %>% 
+  filter(side %in% c('UN','CF'))
+
+# take only entries with more than 100 words
+valley_df_shortened <- valley_df_clean[valley_df_clean$words>100,]
+```
+
+```{r wordcount, echo=FALSE,fig=TRUE}
+ggplot(data=valley_df_shortened,aes(x=words))+geom_histogram()+
+  ggtitle('Histogram of word length with cleaned dataframe',subtitle = 'Longest documents removed')
+```
+
+### Writing out the data
+
+I write out this data in order to store and not have to run the file multiple times.
+
+```{r Writing, echo=TRUE}
+write.csv(valley_df_shortened,'IMP4500_valley_df_clean.csv')
+```
+
+# Section 4: Modeling
+
+## Modeling the Valley data
+
+This entry outlines the meat of what people think of when they say data analysis: modeling. In this post, you’ll encounter some of the repeat offenders of text analysis: corpuses, document-term matrices, and LDA itself. By the end of this post, we'll have a functional model, exploratory graphs, and suggestions for future research. 
+
+### Libraries
+
+```{r libraries ,echo=TRUE,message=FALSE,warning=FALSE}
+library(dplyr)
+library(tm)
+require(ggplot2)
+library(topicmodels)
+library(tidyverse)
+library(tidytext)
+library(LDAvis)
+library(RColorBrewer)
+
+options(stringsAsFactors = FALSE)
+```
+For my last prepartion and analysis, I’ll use the tm package in R. It offers good tools for converting my data format into one recognizable to the LDA function. Their program deals with Corpus objects, and allows you to apply, or map, functions directly to each document. 
+
+### Converting and cleaning the text
+
+We begin by converting the dataframe to a format that tm will recognize: the Volatile Corpus, or VCorpus.
+
+```{r shorten ,echo=TRUE,message=FALSE,warning=FALSE}
+valley_df_shortened <- read.csv('IMP4500_valley_df_clean.csv')
+valley_tm <- VCorpus(VectorSource(valley_df_shortened$text))
+```
+
+The following function, adopted from a post on RStudio (1), cleans the text Vcorpus by transforming words to lowercase, removing punctuation, removing numbers, stripping whitespace, and, optionally, removing stopwords. It takes a VCorpus object and returns the same object with the content having been mapped by the previous functions.
+
+```{r cleaning ,echo=TRUE,message=FALSE,warning=FALSE}
+Corpus_cleaner <- function(tm_obj,stopwords=FALSE){
+  tm_obj <- tm_map(tm_obj,content_transformer(tolower))
+  tm_obj <- tm_map(tm_obj,removePunctuation)
+  tm_obj <- tm_map(tm_obj,removeNumbers)
+  tm_obj <- tm_map(tm_obj,stripWhitespace)
+  if(stopwords){
+    tm_obj <- tm_map(tm_obj,removeWords,c(stopwords("english"),"will",'shall'))
+  }
+  return(tm_obj)
+}
+```
+
+We can pipe this ‘clean’ VCorpus object into a function that generates a document-term-matrix. The document-term-matrix is an essential tool in text analysis. Each row in the dataframe is a document: the columns are the set of all words that occur in any document. In other words, the number of columns corresponds to the number of unique words in the dataset. A particular cell—say (1,1)—designates the document and the word, and the value is the term-frequency of that word in that document. 
+
+```{r piping ,echo=TRUE,message=FALSE,warning=FALSE,eval=FALSE}
+clean_withoutstopwords <- Corpus_cleaner(valley_tm,stopwords=TRUE)
+
+dtm <- DocumentTermMatrix(clean_withoutstopwords)
+```
+
+### Fitting a model
+
+The LDA function in the tm package takes two inputs: a DTM and a suggested number of topics. I chose 20 topics after some experimentation: when I examined the topic distribution, less topics seemed not to have enough distinction between them, and too many topics had too much granularity. 
+
+```{r fitting ,echo=TRUE,message=FALSE,warning=FALSE, eval=FALSE}
+LDA_topics20   <- LDA(x=dtm,k=20)
+```
+
+An important note on computation: LDA is computationally intensive, and especially slow in R. I used save() and load() functions to preserve the models and prevent the necessity of running once a day. 
+
+```{r saving ,echo=TRUE,message=FALSE,warning=FALSE,eval=FALSE}
+saveRDS(LDA_topics20, "LDA_topics20.rds")
+```
+```{r loading ,echo=FALSE,message=FALSE,warning=FALSE,eval=TRUE}
+LDA_topics20 <- readRDS('/Users/samuelbeadles/Desktop/01_UVA_education_related/00_Sem8/LDA_topics20model.rds')
+```
+
+### Exploring the model
+
+Two functions that are important in initial analysis of this LDA object are terms() and topics(). The former lists the constituent words of a topic. The latter lists the topic to which each document is primarily assigned.
+
+```{r exploring ,echo=TRUE,message=FALSE,warning=FALSE}
+head(terms(LDA_topics20,k=10))
+table(head(topics(LDA_topics20,k=1,.1),n=40))
+```
+
+### Visualizing the words in each topic
+
+In this chunk we visualize the words in each topic, sorting by the importance of the word in the topic. source (2,3,4).
+
+```{r tidy ,echo=TRUE,message=FALSE,warning=FALSE,fig.width=10,fig.height=11}
+LDA_td <- tidy(LDA_topics20) # probabilities are very low
+
+top_terms <- LDA_td %>%
+  group_by(topic) %>%
+  top_n(20, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+top_terms
+
+# visualize...
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
+```
+
+
+### Discussion
+
+One of the interesting aspects of this visualization is that certain topics seem to have more 'distinction' than others. Topic for, for example, seems pretty clearly a 'judicial' topic. Topic 9 deals with military matters. Topic 7, however, seems not to have a clear conception focus: Topics 16, 17, 18 and 20 all draw from similar words.
+
+One possibility to explain this phenomenon is that the number of topics should be less. With 5-15 topics, the latter observation-- 'government' topics merge-- still happens. 
+
+I suggest that this phenomenon is an artifact of the scraping and cleaning choices that I made previously. As the historians selectively transcribed these documents, I believe that certain ones were much more easily identified as 'important': political treatises and declarations. With such a bias in the data, our model may only tell us about the topics **that historians in the 20th and 21st centuries thought was important**, rather than letting us infer about our true target 'population' of Civil War newspapers.
+
+# Appendicies
+
+## Appendix 1: Future research
+
+My research contributes to historical methodology in the digital humanities. In research, method matters. The availability and quality of data— the latter a product of method— both expand and circumscribe the generalizability of any research. My work contributes to an understanding of how historians craft arguments in the digital humanities. 
+
+The first lesson of my research is that availability of data matters. Without the Valley of the Shadow’s online repository, none of my research could have happened. On the other hand, data don’t always come in the perfect format. My own research suffered from an inability to separate one data point from another on an article-to-article basis. 
+
+Researchers in the digital humanities have already faced the reality that sometimes data drives research instead of the other way around. One author points out in his Canadian Historical Review article that researchers cite what they find online. The choice of what comes online, then, implicitly bounds the inferential power any research.  
+
+Second, the quality of digitization matters. The Valley was transcribed by hand: newer technologies such as optical character recognition (OCR) are now mainstream digitization tools. With that increased scope comes a health dose of skepticism. Digital historians are now asking questions such as, “what should we about errors in OCR?” and “to what extent can OCR deal with non-standard and old text?” New tools undoubtedly have their pitfalls, but I hope that they will lead to an increase in the pool of information to which digital historians have access.
+
+With respect to my own original research, given more time, I would pursue the question of how curated data affect research. I would apply OCR to the PDF facsimiles of the Valley newspapers and compare the outcome topic models to my own. Such a comparison might shed light onto the choices that the transcribing historians made, and how those 21st century choices might degrade our understand of 19th century choices. 
+
+
+## Appendix 2: History of LDA and LDA of history:
+
+Throughout my project, I use the term ‘topic modeling’ interchangeably with the most popular of topic modeling techniques: **Latent Dirichlet Allocation**. This post will provide some background on LDA, point out several sources to better understand the technique, and delve a little bit into the state of the research in topic modeling and the humanities. A strong skim of these resources will give you an idea of the guts of LDA and its application in the digital humanities.
+
+### LDA primer
+
+Latent Dirichlet Allocation, as described by Blei et al., is popular modeling technique for text corpuses. It’s essential a clustering technique: for LDA, these clusters are typically topics in a corpus of documents. In LDA parlance, documents are collections of topics, and topics are collections of words. Thee topic parameter is “latent” in the sense that we cannot direct observe them: we can only infer an approximate value for them from the corpus using LDA.
+	
+### Potential sources
+
+Many authors do excellent jobs of  showcasing LDA.  David Blei, author of the technique, describes LDA particularly well in his blog post (1). Ted Underwood writes good post in which he bridges the ‘hard’ computer science/statistic explanation and the 'soft' explanation of the principles (2). Of course, the 2001 paper by Blei et al is also an essential read (3).
+	
+My interest is specifically historical. Researchers in a variety of fields have used topic modeling to understand data in the humanities. Several researchers have approached historical sources—generally newspapers—already . Robert Nelson applied topic modeling to Civil War newspapers in his online project *Mining the Dispatch* (4). He used topic modeling to identify and track fugitive slave ads in the Richmond Dispatch. Cameron Blevins used topic modeling to analyze the diary of an 18th century woman (5).
+
+Important researchers have also tackled the weaknesses of LDA. Ben Schmidt, in his post *Sapping Attention*, uses geographic data from whaling ship logs to point out some of the issues with LDA (6). He to argue that humanists using topic-modeling techniques frequently lack the ability to push back against their findings. In short, they have too much faith in and perform too little diagnostics on LDA.
+
+### Conclusion
+
+LDA is a tool that, since its origination, historical researchers have used to inform their research by clustering text into recognizable groups. In applying LDA to the Valley dataset, I'll highlight some of the strengths and weaknesses of this modeling technique.
+
+## Appendix 3: Digitization and Computation
+
+My thesis is taking place at the intersection of increasing available data and computing power. The former phenomenon has already touched normal lives with the advent of Big Data. One IDC study predicts that in the seven year period between 2013 and 2020, the ‘digital universe’ will expand by more than a factor of 10 . As the size of data grows, so does the usefulness of this data: the same study predicts a 15% increase in the proportion of useful data. 
+
+More data enables researchers to ask questions at a scale that would previously be impossible. The Edward Ayers’ Valley of the Shadow project exemplifies this scale. Developed as part of the Virginia Center for Digital History in the early 1990’s, Ayers directed a pioneering foray into digital history. Without this kind of digitization and transcription, computing power would be useless. 
+
+This increase in available data has occurred concurrently with an astronomical increase in computing power, a resource necessary to extract information from data. Moore’s Law, which predicts a doubling in transistors on integrated circuits approximately every two years , has continued to hold true since 1970. Recent developments in parallel and cloud computing have continued to enable the continuation of this growth . Without the computing power of new tools, increasing data would be uninterpretable.
+
+My own project exists on the interior of these two expanding realities. Increasing computing power allows me to use tools such as R. With this tool, I can load, clean, and transform large amounts of text-based data on my personal computer. I have, at my fingertips, hundreds of open-source packages to help create functional, replicable code. Access to the Valley archives in HTML format, on the other hand, enabled me to envision and execute my project.
+
+
+# Sources
+
+## Sources, Scraping:
+
+None
+
+### Sources, Processing:
+
+(1) <https://www.forbes.com/sites/gilpress/2016/03/23/data-preparation-most-time-consuming-least-enjoyable-data-science-task-survey-says/#4f6627d66f63>
+(2) <https://www.sciencedirect.com/science/article/pii/S014829631630488X#bb0095>
+(3) <https://stackoverflow.com/questions/9934856/removing-non-ascii-characters-from-data-files>
+(4) <http://ieeexplore.ieee.org/abstract/document/6778764/>
+
+### Sources, Modeling:
+
+(1) <https://rstudio-pubs-static.s3.amazonaws.com/162701_a953e29532f74a4db8a98329de7d323b.html>
+(2) <https://cran.r-project.org/web/packages/tidytext/vignettes/tidying_casting.html>
+(3) <https://www.tidytextmining.com/topicmodeling.html>
+(4) <http://cfss.uchicago.edu/fall2016/text02.html>
+
+### Sources, Appendix 1:
+(1) <https://ianmilligan.ca/2013/11/19/new-article-illusionary-order-online-databases-optical-character-recognition-and-canadian-history-1997-2010/>
+(2)<http://www.aclweb.org/anthology/D10-1024>
+(3)<https://arxiv.org/pdf/1608.02153.pdf>
+
+
+### Sources, Appendix 2:
+
+(1) <http://journalofdigitalhumanities.org/2-1/topic-modeling-and-digital-humanities<by-david-m-blei/>
+(2) <https://tedunderwood.com/2012/04/07/topic-modeling-made-just-simple-enough/>
+(3) <http://www.jmlr.org/papers/volume3/blei03a/blei03a.pdf>
+(4) <http://dsl.richmond.edu/dispatch/>
+(5) <http://www.cameronblevins.org/posts/topic-modeling-martha-ballards-diary/>
+(6) <http://sappingattention.blogspot.com/>
+
+### Sources, Appendix 3:
+
+(1) <https://www.emc.com/leadership/digital-universe/2014iview/executive-summary.htm>
+(2)<http://www.monolithic3d.com/uploads/6/0/5/5/6055488/gordon_moore_1965_article.pdf>
+(3)<http://ieeexplore.ieee.org/abstract/document/1430623/>
 
 
 
