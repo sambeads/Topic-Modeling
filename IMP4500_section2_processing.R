@@ -58,6 +58,9 @@ valley_df_clean <- valley_df_clean %>%
 # take only entries with more than 100 words
 valley_df_shortened <- valley_df_clean[valley_df_clean$words>100,]
 
+
+ggplot(data=valley_df_shortened,aes(x=words))+geom_histogram()
+
 # write out CSV
 write.csv(valley_df_shortened,'IMP4500_valley_df_clean.csv')
 
