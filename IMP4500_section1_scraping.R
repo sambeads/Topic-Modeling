@@ -214,13 +214,7 @@ for (i in 1:length(hrefsvr)){
 
 # 6: Do some preliminary cleaning/processing
 
-# ii:
-
-valley_df$text <- gsub("\\s\\s+",' ',valley_df$text)  # eliminate whitespace that comes from idiosyncractic scraping issues
-valley_df$text <- trimws(valley_df$text)              # trim whitespace
-valley_df$text <- gsub("\\\"",'',valley_df$text)      # replace \" with ''
-
-# iii: Assign a designation for side. Bind together all dataframes.
+# i: Assign a designation for side. Bind together all dataframes.
 
 confederates <- rbind(newdfvv,newdfrv,newdfss)
 confederates$side <- 'CF'
@@ -229,6 +223,13 @@ union <- rbind(newdffr,newdfsd,newdfvr,newdfvs)
 union$side <- 'UN'
 
 valley_df <- rbind(confederates,union)
+
+# ii:
+
+valley_df$text <- gsub("\\s\\s+",' ',valley_df$text)  # eliminate whitespace that comes from idiosyncractic scraping issues
+valley_df$text <- trimws(valley_df$text)              # trim whitespace
+valley_df$text <- gsub("\\\"",'',valley_df$text)      # replace \" with ''
+
 
 # iii: export valley_df to a file in order not to have to run the loops each time.
 
