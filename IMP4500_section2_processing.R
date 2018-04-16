@@ -1,68 +1,100 @@
-### this is the clean processing page
+### this is the clean LDA analysis page
 
 # Author: Sam Beadles
 # Email: Sbb5ur@virginia.edu
 # Date: 4/2/18
 
-# import relevant libraries
-library(stringr)
+# The purpose of this script is to prepare the data for LDA analysis and run the analysis
+
+# import libraries
 library(dplyr)
-library(readr)
-library(ggplot2)
-library(lubridate)
+library(tm)
+require(ggplot2)
+library(topicmodels)
+library(tidyverse)
+library(tidytext)
+library(LDAvis)
+library(RColorBrewer)
 
-# change options
+setwd('/Users/samuelbeadles/Desktop/01_UVA_education_related_00_Sem8/')
 
-options(stringsAsFactors = FALSE)
+# Section i:import processed document: eliminate documents less than 100 words
 
-### the purpose of this script is to clean/process the data that we scraped
-  # this processing is idiosyncratic to this dataset: we will perform more 'regular' 
-  # processing in the next post
+valley_df_shortened <- read.csv('/Users/samuelbeadles/Desktop/01_UVA_education_related/00_Sem8/IMP4500_valley_df_clean.csv')
 
-setwd("/Users/samuelbeadles/Desktop/01_UVA_education_related/00_Sem8")
+valley_tm <- VCorpus(VectorSource(valley_df_shortened$text))
 
-# read in the semi-processed data
-valley_df_clean <- read.csv('valley_df_clean.csv',encoding = "UTF-8")
+# convert the text to document term matrix
+  # Source: https://rstudio-pubs-static.s3.amazonaws.com/162701_a953e29532f74a4db8a98329de7d323b.html
 
-# Take the index, date, paper, text, URL, and side, Filter any NA values in $text
-valley_df_clean <- valley_df_clean %>% subset(select = c('X','date','paper','text','url','side')) %>% 
-  filter(!is.na(valley_df_clean$text))
+# use functions in tm() to 
+  # lowercase
+  # remove punctuation
+  # remove numbers
+  # strip whitespace
+  # optionally: remove stopwords
+  # optionally: stem
 
-# change the date format
-valley_df_clean$date <- as.Date(str_sub(valley_df_clean$date,start=1,end=-2),format = "%Y.%m.%d")
-# Extract the year
-valley_df_clean$year <- year(valley_df_clean$date)
+Corpus_cleaner <- function(tm_obj,stopwords=FALSE){
+  tm_obj <- tm_map(tm_obj,content_transformer(tolower))
+  tm_obj <- tm_map(tm_obj,removePunctuation)
+  tm_obj <- tm_map(tm_obj,removeNumbers)
+  tm_obj <- tm_map(tm_obj,stripWhitespace)
+  if(stopwords){
+    tm_obj <- tm_map(tm_obj,removeWords,c(stopwords("english"),"will",'shall'))
+  }
+  return(tm_obj)
+}
 
-# create a word count of each document
-word_count <- sapply(valley_df_clean$text, function(x) str_count(x))
-w <- unname(word_count)
-valley_df_clean$words <- w
+# run the function on the VCorpus to get a cleaner Vcorpus object
+clean_withoutstopwords <- Corpus_cleaner(valley_tm,stopwords=TRUE)
 
-# Visualize the word count column
-ggplot()+aes(word_count)+geom_histogram()+
-  ggtitle('Graph of number of words shows most shorter than 4000 words')+
-  theme_minimal()
+# create a DocumentTermMatrix from the VCorpus object
+dtm <- DocumentTermMatrix(clean_withoutstopwords)
 
-# Eliminate non-ASCII characters
-valley_df_clean<- valley_df_clean[-grep("NOT_ASCII", iconv(valley_df_clean$text, "latin1", "ASCII", sub="NOT_ASCII")),]
-# these indicies! [1]  384  408  833  847  859 1086
-# source: https://stackoverflow.com/questions/9934856/removing-non-ascii-characters-from-data-files
+# section ii: fit the model using tm(). Choose appropriate K.
 
-# try to understand the longest entries
-valley_df_clean <- valley_df_clean[valley_df_clean$words!=0,] # seem to be grouped in 3's
+LDA_topics20   <- LDA(x=dtm,k=20)
 
-# filter all entries that do not have the assigned side
-valley_df_clean <- valley_df_clean %>% 
-  filter(side %in% c('UN','CF'))
+# Save and load model
 
-# take only entries with more than 100 words
-valley_df_shortened <- valley_df_clean[valley_df_clean$words>100,]
+saveRDS(LDA_topics20, "LDA_topics20.rds")
+LDA_topics20 <- readRDS("LDA_topics20.rds")
 
+LDA_topics20 <- readRDS('/Users/samuelbeadles/Desktop/01_UVA_education_related/00_Sem8/LDA_topics20model.rds')
 
-ggplot(data=valley_df_shortened,aes(x=words))+geom_histogram()
+# explore the outputs:
 
-# write out CSV
-write.csv(valley_df_shortened,'IMP4500_valley_df_clean.csv')
+terms(LDA_topics20,k=10)
+topics(LDA_topics20,k=1,.1)
 
+# take out
+# section iii: Visualizing results
+  # LDAvis: vignettes? https://cran.r-project.org/web/packages/LDAvis/vignettes/details.pdf
+  # Source of large topicmodels_json_ldavis fxn:http://christophergandrud.blogspot.com/2015/05/a-link-between-topicmodels-lda-and.html
 
+terms(LDA_topics20,k=10) # topic 20 looks like gov, topic 14 looks good
 
+topics(LDA_topics20,k=1)[topics(LDA_topics20,k=1)==14]
+
+# take out
+
+  # source: https://cran.r-project.org/web/packages/tidytext/vignettes/tidying_casting.html
+
+LDA_td <- tidy(LDA_topics20) # probabilities are very low
+
+top_terms <- LDA_td %>%
+  group_by(topic) %>%
+  top_n(20, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+top_terms
+
+# visualize...
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
